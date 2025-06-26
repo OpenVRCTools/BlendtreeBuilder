@@ -1,0 +1,17 @@
+{
+  "name": "org.openvrctools.blendtreebuilder",
+  "displayName": "OpenVRCTools - BlendTreeBuilder",
+  "version": "0.8.1",
+  "description": "A Unity tool to make VRC Blendtree creation easier and faster.",
+  "gitDependencies": {},
+  "vpmDependencies": {},
+  "author": {
+    "email":"laura@chatfrog.games",
+    "name":"LauraRozier",
+    "url":"https://github.com/LauraRozier"
+  },
+  "legacyFolders": {},
+  "legacyFiles": {},
+  "type": "tool",
+  "unity": "2019.4"
+}
