@@ -1,0 +1,30 @@
+name: Dispatch To VPMRepo
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Build Release]
+    types:
+      - completed
+  release:
+     types: [published, created, edited, unpublished, deleted, released]
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+
+  dispatch:
+    name: Dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch to workflows
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.OPENVRCTOOLS_PAT }}
+          repository: OpenVRCTools/VPMRepo
+          event-type: update-listing
+          client-payload: '{"ref":"${{ github.ref }}","sha":"${{ github.sha }}","inputs":{}}'
