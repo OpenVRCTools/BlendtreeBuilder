@@ -21,11 +21,11 @@ namespace OpenVRCTools.BlendTreeBulder
             ForceFolder,
             ForceFile
         }
+
         internal static string ReadyAssetPath(string path, bool makeUnique = false, PathOption pathOption = PathOption.Normal)
         {
             bool forceFolder = pathOption == PathOption.ForceFolder;
             bool forceFile = pathOption == PathOption.ForceFile;
-
             path = forceFile ? LegalizeName(path) : forceFolder ? LegalizePath(path) : LegalizeFullPath(path);
             bool isFolder = forceFolder || (!forceFile && string.IsNullOrEmpty(Path.GetExtension(path)));
 
@@ -61,6 +61,7 @@ namespace OpenVRCTools.BlendTreeBulder
                 }
 
                 path = $"{folderPath}/{fileName}";
+
                 if (makeUnique)
                     path = AssetDatabase.GenerateUniqueAssetPath(path);
 
@@ -72,6 +73,7 @@ namespace OpenVRCTools.BlendTreeBulder
         {
             if (string.IsNullOrEmpty(fileName))
                 return ReadyAssetPath(LegalizePath(folderPath), makeUnique, PathOption.ForceFolder);
+
             if (string.IsNullOrEmpty(folderPath))
                 return ReadyAssetPath(LegalizeName(fileName), makeUnique, PathOption.ForceFile);
 
@@ -82,8 +84,10 @@ namespace OpenVRCTools.BlendTreeBulder
         {
             var buddyPath = AssetDatabase.GetAssetPath(buddyAsset);
             string folderPath = Path.GetDirectoryName(buddyPath);
+
             if (string.IsNullOrEmpty(fullName))
                 fullName = Path.GetFileName(buddyPath);
+
             return ReadyAssetPath(folderPath, fullName, makeUnique);
         }
 
@@ -107,17 +111,20 @@ namespace OpenVRCTools.BlendTreeBulder
 
             return $"{folderPath}/{fileName}{ext}";
         }
+
         internal static string LegalizePath(string path)
         {
             string regexFolderReplace = Regex.Escape(new string(Path.GetInvalidPathChars()));
 
             path = path.Replace('\\', '/');
+
             if (path.IndexOf('/') > 0)
                 path = string.Join("/", path.Split('/').Select(s => Regex.Replace(s, $@"[{regexFolderReplace}]", "-")));
 
             return path;
 
         }
+
         internal static string LegalizeName(string name)
         {
             string regexFileReplace = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
@@ -148,8 +155,9 @@ namespace OpenVRCTools.BlendTreeBulder
             "InStation"
         };
 
-        internal static AnimatorController GetPlayableLayer(this VRCAvatarDescriptor avi, VRCAvatarDescriptor.AnimLayerType type)
-            => avi.baseAnimationLayers.Concat(avi.specialAnimationLayers).FirstOrDefault(p => p.type == type).animatorController as AnimatorController;
+        internal static AnimatorController GetPlayableLayer(this VRCAvatarDescriptor avi, VRCAvatarDescriptor.AnimLayerType type) =>
+            avi.baseAnimationLayers.Concat(avi.specialAnimationLayers)
+                .FirstOrDefault(p => p.type == type).animatorController as AnimatorController;
         internal static bool SetPlayableLayer(this VRCAvatarDescriptor avatar, VRCAvatarDescriptor.AnimLayerType type, RuntimeAnimatorController controller)
         {
             bool SetPlayableLayerInternal(VRCAvatarDescriptor.CustomAnimLayer[] playableLayers)
@@ -157,20 +165,25 @@ namespace OpenVRCTools.BlendTreeBulder
                 for (var i = 0; i < playableLayers.Length; i++)
                     if (playableLayers[i].type == type)
                     {
-                        if (controller) avatar.customizeAnimationLayers = true;
+                        if (controller)
+                            avatar.customizeAnimationLayers = true;
+
                         playableLayers[i].isDefault = !controller;
                         playableLayers[i].animatorController = controller;
                         EditorUtility.SetDirty(avatar);
                         return true;
                     }
+
                 return false;
             }
 
             return SetPlayableLayerInternal(avatar.baseAnimationLayers) || SetPlayableLayerInternal(avatar.specialAnimationLayers);
         }
+
         internal static AnimatorController ReadyPlayableLayer(this VRCAvatarDescriptor avatar, VRCAvatarDescriptor.AnimLayerType type, string folderPath)
         {
             AnimatorController controller = avatar.GetPlayableLayer(type);
+
             if (!controller)
             {
                 controller = new AnimatorController();
@@ -183,11 +196,12 @@ namespace OpenVRCTools.BlendTreeBulder
 
             SetPlayableLayer(avatar, type, controller);
             return controller;
-
         }
+
         internal static VRCExpressionParameters ReadyExpressionParameters(this VRCAvatarDescriptor avatar, string folderPath)
         {
             VRCExpressionParameters parameters = avatar.expressionParameters;
+
             if (!parameters)
             {
                 parameters = ScriptableObject.CreateInstance<VRCExpressionParameters>();
@@ -198,6 +212,7 @@ namespace OpenVRCTools.BlendTreeBulder
 
                 AssetDatabase.CreateAsset(parameters, assetPath);
             }
+
             avatar.customExpressions = true;
             avatar.expressionParameters = parameters;
             EditorUtility.SetDirty(avatar);
@@ -214,12 +229,14 @@ namespace OpenVRCTools.BlendTreeBulder
                 {
                     if (p.type != type)
                         Debug.LogWarning($"Type mismatch! Parameter {parameter} already exists in {controller.name} but with type {p.type} rather than {type}");
+
                     return;
                 }
             }
 
             controller.AddParameter(new AnimatorControllerParameter { name = parameter, type = type, defaultBool = defaultValue != 0, defaultInt = (int)defaultValue, defaultFloat = defaultValue });
         }
+
         internal static AnimatorControllerLayer AddLayer(this AnimatorController controller, string name, float defaultWeight)
         {
             var newLayer = new AnimatorControllerLayer
@@ -248,24 +265,23 @@ namespace OpenVRCTools.BlendTreeBulder
 
             string statePath = AssetDatabase.GetAssetPath(state);
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(statePath);
+
             if (controller)
             {
                 AssetDatabase.AddObjectToAsset(newTree, controller);
                 newTree.hideFlags = HideFlags.HideInHierarchy;
-
             }
             else
             {
                 var folderPath = Path.GetDirectoryName(statePath);
-
                 var fileName = name;
                 if (string.IsNullOrEmpty(fileName))
                     if (string.IsNullOrEmpty(fileName = state.name))
                         fileName = "Blendtree";
 
                 AssetDatabase.CreateAsset(newTree, ReadyAssetPath(folderPath, $"{fileName}.blendtree", true));
-
             }
+
             state.motion = newTree;
             EditorUtility.SetDirty(state);
             return newTree;
@@ -279,6 +295,7 @@ namespace OpenVRCTools.BlendTreeBulder
             if (machine.stateMachines.SelectMany(cm => machine.GetStateMachineTransitions(cm.stateMachine)).Any(t => transitionAction(t))) return;
 
             if (!deep) return;
+
             foreach (var cm in machine.stateMachines)
                 if (cm.stateMachine != machine)
                     cm.stateMachine.Iteratetransitions(transitionAction);
@@ -286,8 +303,11 @@ namespace OpenVRCTools.BlendTreeBulder
 
         internal static void IterateTreeChildren(this BlendTree tree, System.Func<ChildMotion, ChildMotion> func, bool deep = true, bool undo = false)
         {
-            if (undo) Undo.RecordObject(tree, "IterateTreeUndo");
+            if (undo)
+                Undo.RecordObject(tree, "IterateTreeUndo");
+
             ChildMotion[] children = tree.children;
+
             for (int i = 0; i < children.Length; i++)
             {
                 if (deep)
@@ -295,7 +315,8 @@ namespace OpenVRCTools.BlendTreeBulder
                     var tree2 = children[i].motion as BlendTree;
                     if (tree2 != null) tree2.IterateTreeChildren(func, true);
                     else children[i] = func(children[i]);
-                } else children[i] = func(children[i]);
+                }
+                else children[i] = func(children[i]);
             }
 
             tree.children = children;
@@ -317,10 +338,11 @@ namespace OpenVRCTools.BlendTreeBulder
                 .Concat(objectCurves.SelectMany(c => c.Select(k => k.time))).Distinct().ToArray();
 
             (float, AnimationClip)[] clipKeyFrames = new (float, AnimationClip)[usedTimes.Length];
+
             for (int i = 0; i < usedTimes.Length; i++)
             {
                 var time = usedTimes[i];
-                var newClip = new AnimationClip(){name = $"{clip.name}_{i}"};
+                var newClip = new AnimationClip() { name = $"{clip.name}_{i}" };
 
                 for (int j = 0; j < floatBinds.Length; j++)
                 {
@@ -342,17 +364,18 @@ namespace OpenVRCTools.BlendTreeBulder
                         objectValue = keyArray[higherIndex - 1].value;
                     else objectValue = keyArray[keyArray.Length - 1].value;
 
-                    AnimationUtility.SetObjectReferenceCurve(newClip, bind, new ObjectReferenceKeyframe[] {new ObjectReferenceKeyframe() {time = time, value = objectValue}});
+                    AnimationUtility.SetObjectReferenceCurve(newClip, bind, new ObjectReferenceKeyframe[] { new ObjectReferenceKeyframe() { time = time, value = objectValue } });
                 }
 
-                clipKeyFrames[i] = (time/clip.length, newClip);
+                clipKeyFrames[i] = (time / clip.length, newClip);
             }
 
             return clipKeyFrames;
         }
 
+        public static bool IsConstant(Motion m) =>
+            IsConstant(m as AnimationClip) && IsConstant(m as BlendTree);
 
-        public static bool IsConstant(Motion m) => IsConstant(m as AnimationClip) && IsConstant(m as BlendTree);
         public static bool IsConstant(AnimationClip clip)
         {
             if (!clip) return true;
@@ -368,29 +391,28 @@ namespace OpenVRCTools.BlendTreeBulder
                 bool isFloatCurve = floatCurve != null;
 
                 bool oneStartKey = (isFloatCurve && floatCurve.keys.Length == 1 && floatCurve.keys[0].time == 0) || (!isFloatCurve && objectCurve.Length <= 1 && objectCurve[0].time == 0);
-                if (oneStartKey)
-                    continue;
+                if (oneStartKey) continue;
 
                 if (isFloatCurve)
                 {
                     float v1 = floatCurve.keys[0].value;
                     float t1 = floatCurve.keys[0].time;
+
                     for (int j = 1; j < floatCurve.keys.Length; j++)
                     {
                         var t2 = floatCurve.keys[j].time;
-                        if (floatCurve.keys[j].value != v1 || floatCurve.Evaluate((t1 + t2) / 2f) != v1)
-                            return false;
+                        if (floatCurve.keys[j].value != v1 || floatCurve.Evaluate((t1 + t2) / 2f) != v1) return false;
                         t1 = t2;
                     }
                 }
                 else
                 {
                     Object v = objectCurve[0].value;
-                    if (objectCurve.Any(o => o.value != v))
-                        return false;
+                    if (objectCurve.Any(o => o.value != v)) return false;
                 }
 
             }
+
             return true;
         }
 
@@ -402,6 +424,7 @@ namespace OpenVRCTools.BlendTreeBulder
             {
                 if (isConstant && cm.motion is AnimationClip clip)
                     isConstant &= IsConstant(clip);
+
                 return cm;
             });
             return isConstant;
@@ -427,6 +450,7 @@ namespace OpenVRCTools.BlendTreeBulder
         }
 
         public static T Duplicate<T>(T obj) where T : Object => CopyAssetAndReturn(obj, ReadyAssetPath(obj));
+
         public static void MarkDirty(this Object obj) => EditorUtility.SetDirty(obj);
         #endregion
 
@@ -434,34 +458,30 @@ namespace OpenVRCTools.BlendTreeBulder
         internal static bool GetIndexOf<T>(this IEnumerable<T> collection, System.Func<T, bool> predicate, out int index)
         {
             index = -1;
+
             using (var enumerator = collection.GetEnumerator())
                 while (enumerator.MoveNext())
                 {
                     index++;
-                    if (predicate(enumerator.Current))
-                        return true;
+                    if (predicate(enumerator.Current)) return true;
                 }
+
             return false;
         }
 
         internal static int GetBoolState(IEnumerable<bool> boolCollection, int defaultState = 0)
         {
             int finalState = -1;
+
             using (var enumerator = boolCollection.GetEnumerator())
                 while (enumerator.MoveNext())
                 {
-                   switch (finalState)
-                   {
-                        case -1:
-                            finalState = enumerator.Current ? 1 : 0;
-                            break;
-                        case 0:
-                            if (enumerator.Current) return 2;
-                            break;
-                        case 1:
-                            if (!enumerator.Current) return 2;
-                            break;
-                   }
+                    switch (finalState)
+                    {
+                        case -1: { finalState = enumerator.Current ? 1 : 0; break; }
+                        case 0: { if (enumerator.Current) return 2; break; }
+                        case 1: { if (!enumerator.Current) return 2; break; }
+                    }
                 }
 
             return finalState == -1 ? defaultState : finalState;
@@ -471,22 +491,16 @@ namespace OpenVRCTools.BlendTreeBulder
         {
             switch (boolstate)
             {
-                case 0:
-                    boolstate = 1;
-                    return true;
-                default:
-                    boolstate = 0;
-                    return false;
+                case 0: { boolstate = 1; return true; }
+                default: { boolstate = 0; return false; }
             }
         }
-
 
         internal static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> kvp, out TKey key, out TValue value)
         {
             key = kvp.Key;
             value = kvp.Value;
         }
-
         #endregion
     }
 }

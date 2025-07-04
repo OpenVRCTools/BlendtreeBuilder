@@ -1,11 +1,5 @@
 {
   "dependencies": {
-    "com.dreadscripts.blendtreebuilder": {
-      "version": "file:org.openvrctools.blendtreebuilder",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {}
-    },
     "com.unity.ai.navigation": {
       "version": "1.1.5",
       "depth": 0,
@@ -230,6 +224,12 @@
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       }
+    },
+    "org.openvrctools.blendtreebuilder": {
+      "version": "file:org.openvrctools.blendtreebuilder",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",

@@ -14,11 +14,13 @@ namespace OpenVRCTools.BlendTreeBulder
         private const string LAYER_ANYSTATE_IDENTIFIER = "BTB_MasterTree";
         private const string LAYER_NAME_IDENTIFIER = "BTB/MasterTree";
         private const string WEIGHTONE_PARAMETER_NAME = "BTB/One";
+
         public static BlendTree GetMasterBlendTree(VRCAvatarDescriptor avi)
         {
             var fx = avi.GetPlayableLayer(VRCAvatarDescriptor.AnimLayerType.FX);
             return fx ? GetMasterBlendTree(fx) : null;
         }
+
         public static BlendTree GetMasterBlendTree(AnimatorController controller)
         {
             foreach (var l in controller.layers)
@@ -37,6 +39,7 @@ namespace OpenVRCTools.BlendTreeBulder
                 var tree = s.motion as BlendTree;
                 if (tree) return tree;
             }
+
             return null;
         }
 
@@ -47,8 +50,8 @@ namespace OpenVRCTools.BlendTreeBulder
 
             RedLog("No FX Controller found on target Avatar!");
             return null;
-
         }
+
         public static BlendTree GenerateMasterBlendTree(AnimatorController con)
         {
             con.ReadyParameter(WEIGHTONE_PARAMETER_NAME, AnimatorControllerParameterType.Float, 1);
@@ -66,12 +69,20 @@ namespace OpenVRCTools.BlendTreeBulder
             return tree;
         }
 
-        public static BlendTree GetOrGenerateMasterBlendTree(VRCAvatarDescriptor avi) => GetMasterBlendTree(avi) ?? GenerateMasterBlendTree(avi);
-        public static BlendTree GetOrGenerateMasterBlendTree(AnimatorController con) => GetMasterBlendTree(con) ?? GenerateMasterBlendTree(con);
+        public static BlendTree GetOrGenerateMasterBlendTree(VRCAvatarDescriptor avi) =>
+            GetMasterBlendTree(avi) ?? GenerateMasterBlendTree(avi);
+
+        public static BlendTree GetOrGenerateMasterBlendTree(AnimatorController con) =>
+            GetMasterBlendTree(con) ?? GenerateMasterBlendTree(con);
 
         public static OptimizationInfo GetOptimizationInfo(AnimatorController con)
         {
-            OptimizationInfo info = new OptimizationInfo() { targetController = con, masterTree = GetMasterBlendTree(con) };
+            OptimizationInfo info = new OptimizationInfo
+            {
+                targetController = con,
+                masterTree = GetMasterBlendTree(con)
+            };
+
             for (int i = 0; i < con.layers.Length; i++)
             {
                 if (con.layers[i].name == LAYER_NAME_IDENTIFIER || con.layers[i].stateMachine.anyStateTransitions.Any(t => t && t.isExit && t.mute && t.name == LAYER_ANYSTATE_IDENTIFIER)) continue;
@@ -92,13 +103,16 @@ namespace OpenVRCTools.BlendTreeBulder
             Undo.RecordObject(masterTree, "Apply DBT Optimization");
 
             var parameters = con.parameters;
+
             for (int i = info.Count - 1; i >= 0; i--)
             {
                 var optBranch = info[i];
+
                 if (!optBranch.isActive) continue;
                 if (optBranch.isReplacing && optBranch.linkedLayer != null)
                 {
                     var l = optBranch.linkedLayer;
+
                     if (con.layers.GetIndexOf(l2 => l.stateMachine == l2.stateMachine, out int index))
                     {
                         Debug.Log($"Removed Layer: {l.name}");
@@ -117,6 +131,7 @@ namespace OpenVRCTools.BlendTreeBulder
                     try
                     {
                         AssetDatabase.StartAssetEditing();
+
                         for (int j = 0; j < clipKeyFrames.Length; j++)
                         {
                             var clipPath = ReadyAssetPath(folderPath, $"{clipKeyFrames[j].Item2.name}.anim", true);
@@ -126,9 +141,10 @@ namespace OpenVRCTools.BlendTreeBulder
                     finally { AssetDatabase.StopAssetEditing(); }
 
                     ChildMotion[] newChildren = new ChildMotion[clipKeyFrames.Length];
+
                     for (int j = 0; j < clipKeyFrames.Length; j++)
                     {
-                        newChildren[j] = new ChildMotion()
+                        newChildren[j] = new ChildMotion
                         {
                             threshold = clipKeyFrames[j].Item1,
                             motion = clipKeyFrames[j].Item2,
@@ -141,28 +157,27 @@ namespace OpenVRCTools.BlendTreeBulder
 
                 AppendBranch(masterTree, optBranch);
 
-                if (parameters.GetIndexOf(p => p.name == optBranch.baseBranch.parameter, out int paramIndex)) 
+                if (parameters.GetIndexOf(p => p.name == optBranch.baseBranch.parameter, out int paramIndex))
                     parameters[paramIndex].type = AnimatorControllerParameterType.Float;
-                else con.ReadyParameter(optBranch.baseBranch.parameter, AnimatorControllerParameterType.Float, 0);
+                else
+                    con.ReadyParameter(optBranch.baseBranch.parameter, AnimatorControllerParameterType.Float, 0);
 
             }
+
             con.parameters = parameters;
-
             FillTreeWithEmpty(masterTree);
-
-           // BlendTreeBuilderMenuItem.FixTreeSpeed(masterTree, false);
-
             GreenLog("Successfully applied optimization!");
         }
 
         public static void AppendBranch(BlendTree targetTree, Branch branch)
         {
             Motion finalMotion;
+
             if (branch.childMotions.Length == 1)
                 finalMotion = branch.childMotions[0].motion;
             else
             {
-                BlendTree newTree = new BlendTree()
+                BlendTree newTree = new BlendTree
                 {
                     useAutomaticThresholds = false,
                     name = branch.name,
@@ -174,7 +189,7 @@ namespace OpenVRCTools.BlendTreeBulder
             }
 
             ChildMotion[] children = targetTree.children;
-            ChildMotion newChild = new ChildMotion()
+            ChildMotion newChild = new ChildMotion
             {
                 directBlendParameter = WEIGHTONE_PARAMETER_NAME,
                 motion = finalMotion,
@@ -183,7 +198,6 @@ namespace OpenVRCTools.BlendTreeBulder
 
             ArrayUtility.Add(ref children, newChild);
             targetTree.children = children;
-
         }
 
         public static void CreateBlendTreeAsset(BlendTree associatedTree, BlendTree assetTree, string name = "")
@@ -191,6 +205,7 @@ namespace OpenVRCTools.BlendTreeBulder
             Undo.RegisterCreatedObjectUndo(assetTree, "Create Blendtree Asset");
             var treePath = AssetDatabase.GetAssetPath(associatedTree);
             var con = AssetDatabase.LoadAssetAtPath<AnimatorController>(treePath);
+
             if (con)
             {
                 AssetDatabase.AddObjectToAsset(assetTree, con);
@@ -199,8 +214,8 @@ namespace OpenVRCTools.BlendTreeBulder
             else
             {
                 var folderPath = Path.GetDirectoryName(treePath);
-
                 var fileName = name;
+
                 if (string.IsNullOrEmpty(fileName))
                     if (string.IsNullOrEmpty(fileName = assetTree.name))
                         fileName = "Blendtree";
@@ -214,6 +229,7 @@ namespace OpenVRCTools.BlendTreeBulder
             const string folderPath = BlendTreeBuilderWindow.GENERATED_ASSETS_PATH;
             var emptyClipPath = ReadyAssetPath(folderPath,"Empty Clip.anim", false);
             var emptyClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(emptyClipPath);
+
             if (!emptyClip)
             {
                 emptyClip = new AnimationClip();
@@ -225,18 +241,12 @@ namespace OpenVRCTools.BlendTreeBulder
                 if (!cm.motion) cm.motion = emptyClip;
                 return cm;
             });
-
         }
 
-        private static void RedLog(string msg)
-        {
+        private static void RedLog(string msg) =>
             Debug.LogError($"<color=red>[BlendTreeBuilder] {msg}</color>");
-        }
 
-        private static void GreenLog(string msg)
-        {
+        private static void GreenLog(string msg) =>
             Debug.Log($"<color=green>[BlendTreeBuilder] {msg}</color>");
-        }
-
     }
 }

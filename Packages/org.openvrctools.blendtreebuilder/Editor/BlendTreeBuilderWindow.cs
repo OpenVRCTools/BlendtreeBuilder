@@ -22,10 +22,8 @@ namespace OpenVRCTools.BlendTreeBulder
         private static readonly string[] toolbarOptions = { "Optimize", "Build" };
         private static int toolbarIndex;
         private static Vector2 scroll;
-
         private static BlendTree masterBlendtree;
         private static AnimatorController _fxController;
-
         private static AnimatorController fxController
         {
             get => _fxController;
@@ -42,9 +40,7 @@ namespace OpenVRCTools.BlendTreeBulder
         private static OptimizationInfo _currentOptInfo;
         private static bool shouldRepaint;
         private static int currentStep;
-
         private static bool hasReadPriorityWarning;
-
         private static OptimizationInfo currentOptInfo
         {
             get => _currentOptInfo;
@@ -62,7 +58,6 @@ namespace OpenVRCTools.BlendTreeBulder
         public static bool makeDuplicate = true;
         public static int allActive = 1;
         public static int allReplace = 1;
-
         private static VRCAvatarDescriptor _avatar;
         public static VRCAvatarDescriptor avatar
         {
@@ -77,20 +72,16 @@ namespace OpenVRCTools.BlendTreeBulder
         #endregion
 
         [MenuItem("OpenVRCTools/BlendTree Builder", false, 72)]
-        public static void ShowWindow() => GetWindow<BlendTreeBuilderWindow>("BlendTree Builder").titleContent.image = EditorGUIUtility.IconContent("BlendTree Icon").image;
+        public static void ShowWindow() =>
+            GetWindow<BlendTreeBuilderWindow>("BlendTree Builder").titleContent.image = EditorGUIUtility.IconContent("BlendTree Icon").image;
 
         private void OnGUI()
         {
             scroll = EditorGUILayout.BeginScrollView(scroll);
             switch (currentStep)
             {
-                /*case 0: DrawAvatarSelectionStep(); break;
-                case 1: DrawAvatarReadyStep(); break;
-                case 2: DrawMainStep(); break;*/
-                case 0: DrawReadyStep();
-                    break;
-                case 1: DrawMainStep();
-                    break;
+                case 0: { DrawReadyStep(); break; }
+                case 1: { DrawMainStep(); break; }
             }
 
             EditorGUILayout.EndScrollView();
@@ -102,94 +93,20 @@ namespace OpenVRCTools.BlendTreeBulder
             }
         }
 
-        private void DrawAvatarSelectionStep()
-        {
-            using (new TitledScope("Select your Avatar"))
-            {
-                var tempAvatar = avatar;
-                var fieldLabel = "Avatar";
-
-                EditorGUI.BeginChangeCheck();
-
-                if (avatar) DrawValidatedField("Avatar is Set!", ref tempAvatar, fieldLabel);
-                else {DrawWarningField("Please select your target Avatar", ref tempAvatar, fieldLabel, () =>
-                {
-                    AutoDetectAvatar();
-                    tempAvatar = avatar;
-                }, "Auto-Detect"); }
-
-                if (EditorGUI.EndChangeCheck())
-                    avatar = tempAvatar;
-
-                DrawNextButton(avatar);
-            }
-        }
-
-        /*private void DrawAvatarReadyStep()
-        {
-            ResetStepsIf(!avatar, false);
-            using (new TitledScope("Prepare your Avatar"))
-            {
-                var fieldLabel = "FX Controller";
-                if (fxController) DrawValidatedField("Controller is ready for use!", ref fxController, fieldLabel);
-                else
-                {
-                    DrawWarningField("FX Controller is not setup on the Avatar",
-                        ref fxController, fieldLabel,
-                        () => { fxController = avatar.ReadyPlayableLayer(VRCAvatarDescriptor.AnimLayerType.FX, GENERATED_ASSETS_PATH); }, 
-                        "Ready FX Controller");
-                }
-
-                /*var fieldLabel2 = "Expression Parameters";
-                if (exParameters) DrawValidatedField("Expression Parameters are ready for use!", ref exParameters, fieldLabel2);
-                else
-                {
-                    DrawWarningField("Expression Parameters are not setup on the Avatar",
-                        ref exParameters, fieldLabel2,
-                        () => { exParameters = avatar.ReadyExpressionParameters(GENERATED_ASSETS_PATH); }, 
-                        "Ready Expression Parameters");
-                }#1#
-
-                DrawNextButton(fxController);
-            }
-        }*/
-
-
-        private void DrawMasterTreeReadyStep()
-        {
-            ResetStepsIf(!avatar || !fxController, false);
-            using (new TitledScope("Master BlendTree Setup"))
-            {
-                var fieldLabel = "Master BlendTree";
-
-                if (masterBlendtree) DrawValidatedField("Master BlendTree is ready for use!", ref masterBlendtree, fieldLabel);
-                else
-                {
-                    DrawWarningField("Master BlendTree is not setup on the Controller.",
-                        ref masterBlendtree, fieldLabel,
-                        () => { masterBlendtree = GetOrGenerateMasterBlendTree(avatar); }, "Ready Master BlendTree");
-                }
-
-
-                DrawNextButton(masterBlendtree);
-            }
-        }
-
         private void DrawReadyStep()
         {
             using (new TitledScope("Ready your Avatar"))
             {
                 const string fieldLabel = "Avatar";
                 const string fieldLabel2 = "FX Controller";
-                //xvar fieldLabel3 = "Expression Parameters";
 
                 #region Avatar Ready
-
                 var tempAvatar = avatar;
 
                 EditorGUI.BeginChangeCheck();
 
-                if (avatar) DrawValidatedField("Avatar is Set!", ref tempAvatar, fieldLabel);
+                if (avatar)
+                    DrawValidatedField("Avatar is Set!", ref tempAvatar, fieldLabel);
                 else
                 {
                     DrawWarningField("Please select your target Avatar", ref tempAvatar, fieldLabel, () =>
@@ -201,31 +118,22 @@ namespace OpenVRCTools.BlendTreeBulder
 
                 if (EditorGUI.EndChangeCheck())
                     avatar = tempAvatar;
-
                 #endregion
+
                 var tempController = fxController;
 
                 EditorGUI.BeginChangeCheck();
-                if (fxController) DrawValidatedField("Controller is ready for use!", ref tempController, fieldLabel2);
+                if (fxController)
+                    DrawValidatedField("Controller is ready for use!", ref tempController, fieldLabel2);
                 else
                 {
-                    DrawWarningField("FX Controller is not setup on the Avatar",
-                        ref tempController, fieldLabel2, !avatar || true ? (Action)null : () => { fxController = avatar.ReadyPlayableLayer(VRCAvatarDescriptor.AnimLayerType.FX, GENERATED_ASSETS_PATH); },
+                    DrawWarningField("FX Controller is not setup on the Avatar", ref tempController,
+                        fieldLabel2, !avatar || true ? (Action)null : () => { fxController = avatar.ReadyPlayableLayer(VRCAvatarDescriptor.AnimLayerType.FX, GENERATED_ASSETS_PATH); },
                         "Ready FX");
                 }
 
                 if (EditorGUI.EndChangeCheck())
                     fxController = tempController;
-
-                /*
-                if (exParameters) DrawValidatedField("Expression Parameters are ready for use!", ref exParameters, fieldLabel3);
-                else
-                {
-                    DrawWarningField("Expression Parameters are not setup on the Avatar",
-                        ref exParameters, fieldLabel3,
-                        () => { exParameters = avatar.ReadyExpressionParameters(GENERATED_ASSETS_PATH); }, 
-                        "Ready ExParameters");
-                }*/
 
                 DrawNextButton(fxController);
             }
@@ -234,21 +142,23 @@ namespace OpenVRCTools.BlendTreeBulder
         private void DrawMainStep()
         {
             toolbarIndex = GUILayout.Toolbar(toolbarIndex, toolbarOptions, EditorStyles.toolbarButton);
+
             switch (toolbarIndex)
             {
-                case 0:
-                    DrawOptimizationWindow();
-                    break;
+                case 0: { DrawOptimizationWindow(); break; }
                 case 1:
+                {
                     using (new TitledScope(toolbarOptions[1]))
                         EditorGUILayout.HelpBox("Under development!", MessageType.Info);
                     break;
+                }
             }
         }
 
         private void DrawOptimizationWindow()
         {
             ResetStepsIf(!fxController, false);
+
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 using (new GUILayout.HorizontalScope())
@@ -257,6 +167,7 @@ namespace OpenVRCTools.BlendTreeBulder
                         if (GUILayout.Button(new GUIContent("All Active", "Will be used during generation"), GUILayout.ExpandWidth(false)))
                         {
                             bool newState = ToggleBoolState(ref allActive);
+
                             for (int i = 0; i < currentOptInfo.Count; i++)
                                 currentOptInfo[i].isActive = newState;
                         }
@@ -273,22 +184,24 @@ namespace OpenVRCTools.BlendTreeBulder
                         if (GUILayout.Button(new GUIContent("All Replace", "Will remove the optimized layer on apply."), GUILayout.ExpandWidth(false)))
                         {
                             bool newState = ToggleBoolState(ref allReplace);
+
                             for (int i = 0; i < currentOptInfo.Count; i++)
                                 currentOptInfo[i].isReplacing = newState;
                         }
                 }
                 DrawSeparator();
 
-
                 if (!hasReadPriorityWarning)
                 {
                     using (new GUILayout.VerticalScope(EditorStyles.helpBox))
                     {
                         DrawWarning("Optimizer does not take into account layer priority! If some associated animation clips overlap with others, then behaviour may change.");
+
                         using (new GUILayout.HorizontalScope())
                         {
                             if (GUILayout.Button("Understood"))
                                 hasReadPriorityWarning = true;
+
                             if (GUILayout.Button("Don't Show Again.", GUILayout.ExpandWidth(false)))
                             {
                                 PlayerPrefs.SetInt(PRIORITY_WARNING_PREFKEY, 1);
@@ -311,9 +224,11 @@ namespace OpenVRCTools.BlendTreeBulder
                         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
                         {
                             DrawValidated("Nothing to optimize!");
+
                             using (new GUILayout.HorizontalScope())
                             {
                                 DrawBackButton();
+
                                 if (GUILayout.Button("Refresh"))
                                     currentOptInfo = GetOptimizationInfo(fxController);
                             }
@@ -335,6 +250,7 @@ namespace OpenVRCTools.BlendTreeBulder
                                     {
                                         EditorGUI.BeginChangeCheck();
                                         b.isActive = EditorGUILayout.Toggle(b.isActive, GUILayout.Width(12), GUILayout.Height(18));
+
                                         if (EditorGUI.EndChangeCheck())
                                         {
                                             b.foldout = false;
@@ -344,8 +260,10 @@ namespace OpenVRCTools.BlendTreeBulder
                                     string paramLabel = string.IsNullOrEmpty(b.baseBranch.parameter) ? "No Parameter" : b.baseBranch.parameter;
 
                                     GUIContent foldIcon = b.foldout ? Content.foldoutIconOn : Content.foldoutIconOff;
+
                                     if (GUILayout.Button(foldIcon, Styles.iconButton, GUILayout.Width(15), GUILayout.Height(18)))
                                         b.foldout = !b.foldout;
+
                                     GUILayout.Label(b.baseBranch.name, Styles.foldoutLabel);
                                     GUILayout.Label($"({b.linkedLayerIndex})", Styles.faintLabel);
                                     GUILayout.Label($"[{paramLabel}]", Styles.italicFaintLabel);
@@ -366,15 +284,6 @@ namespace OpenVRCTools.BlendTreeBulder
                                             b.isReplacing = !b.isReplacing;
                                             allReplace = GetBoolState(currentOptInfo.optBranches.Select(branch => branch.isReplacing));
                                         }
-
-                                    /*using (new IsolatedDisableScope(false))
-                                    using (new BGColoredScope(b.isActive, Color.green, Color.grey))
-                                        if (GUILayout.Button(new GUIContent("Active", "Will be used during generation")))
-                                        {
-                                            b.isActive = !b.isActive;
-                                            b.foldout = false;
-                                            allActive = GetBoolState(currentOptInfo.optBranches.Select(branch => branch.isActive));
-                                        }*/
                                 }
 
                                 if (!b.foldout) continue;
@@ -385,10 +294,13 @@ namespace OpenVRCTools.BlendTreeBulder
                                     switch (targetChildren.Length)
                                     {
                                         case 1:
+                                        {
                                             targetChildren[0].motion.QuickField(GUIContent.none);
                                             DoPlaceholderLabel("Motion", 40, 24);
                                             break;
+                                        }
                                         case 2:
+                                        {
                                             using (new GUILayout.HorizontalScope())
                                             {
                                                 targetChildren[0].motion.QuickField(GUIContent.none);
@@ -398,18 +310,20 @@ namespace OpenVRCTools.BlendTreeBulder
                                                 DoPlaceholderLabel("On", 40, 24);
                                             }
                                             break;
+                                        }
                                         default:
+                                        {
                                             for (int j = 0; j < targetChildren.Length; j++)
                                             {
                                                 targetChildren[j].motion.QuickField(GUIContent.none);
                                                 DoPlaceholderLabel($"Motion {j + 1}", 100, 24);
                                             }
                                             break;
+                                        }
                                     }
 
                                 if (EditorGUI.EndChangeCheck())
                                     b.baseBranch.childMotions = targetChildren;
-
                             }
                         }
 
@@ -430,7 +344,6 @@ namespace OpenVRCTools.BlendTreeBulder
                             if (GUILayout.Button("Refresh", Styles.comicallyLargeButton, GUILayout.ExpandWidth(false)))
                                 currentOptInfo = GetOptimizationInfo(fxController);
                         }
-
                     }
                 }
             }
@@ -439,10 +352,12 @@ namespace OpenVRCTools.BlendTreeBulder
         private static void DrawNextButton(bool nextCondition)
         {
             EditorGUILayout.Space();
+
             using (new GUILayout.HorizontalScope())
             {
                 if (currentStep != 0)
                     DrawBackButton();
+
                 using (new EditorGUI.DisabledScope(!nextCondition))
                 using (new BGColoredScope(nextCondition, Color.green, Color.grey))
                     if (GUILayout.Button("Next"))
@@ -457,12 +372,14 @@ namespace OpenVRCTools.BlendTreeBulder
 
         }
 
-
         private static void OnAvatarChanged()
         {
             if (!avatar) return;
             fxController = avatar.GetPlayableLayer(VRCAvatarDescriptor.AnimLayerType.FX);
-            if (!exParameters) exParameters = avatar.expressionParameters;
+
+            if (!exParameters)
+                exParameters = avatar.expressionParameters;
+
             masterBlendtree = GetMasterBlendTree(avatar);
         }
 
@@ -472,7 +389,6 @@ namespace OpenVRCTools.BlendTreeBulder
             currentStep = 0;
             currentOptInfo = null;
             if (throwError) throw new Exception("[BlendTree Buildter] Unhandled exception occured. Steps have been reset.");
-
         }
 
         private void OnEnable()
@@ -481,13 +397,12 @@ namespace OpenVRCTools.BlendTreeBulder
             AutoDetectAvatar();
         }
 
-        private void OnFocus()
-        {
+        private void OnFocus() =>
             OnAvatarChanged();
-        }
 
         #region Sub-Methods
-        private static void AutoDetectAvatar() => avatar = avatar ? avatar : FindObjectOfType<VRCAvatarDescriptor>();
+        private static void AutoDetectAvatar() =>
+            avatar = avatar ? avatar : FindObjectOfType<VRCAvatarDescriptor>();
         #endregion
     }
 }

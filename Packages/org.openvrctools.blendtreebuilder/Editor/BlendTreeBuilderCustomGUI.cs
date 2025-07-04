@@ -16,25 +16,27 @@ namespace OpenVRCTools.BlendTreeBulder
                 wasEnabled = GUI.enabled;
                 GUI.enabled = !disabled;
             }
-            public void Dispose()
-            {
+
+            public void Dispose() =>
                 GUI.enabled = wasEnabled;
-            }
         }
 
-        public class BGColoredScope : System.IDisposable
+        public class BGColoredScope : IDisposable
         {
             private readonly Color ogColor;
+
             public BGColoredScope(Color setColor)
             {
                 ogColor = GUI.backgroundColor;
                 GUI.backgroundColor = setColor;
             }
-            public BGColoredScope(bool isActive, Color setColor )
+
+            public BGColoredScope(bool isActive, Color setColor)
             {
                 ogColor = GUI.backgroundColor;
                 GUI.backgroundColor = isActive ? setColor : ogColor;
             }
+
             public BGColoredScope(bool isActive, Color active, Color inactive)
             {
                 ogColor = GUI.backgroundColor;
@@ -46,11 +48,11 @@ namespace OpenVRCTools.BlendTreeBulder
                 ogColor = GUI.backgroundColor;
                 GUI.backgroundColor = colors[selectedIndex];
             }
-            public void Dispose()
-            {
+
+            public void Dispose() =>
                 GUI.backgroundColor = ogColor;
-            }
         }
+
         public class TitledScope : IDisposable
         {
             internal TitledScope(string title, params GUILayoutOption[] options)
@@ -60,7 +62,7 @@ namespace OpenVRCTools.BlendTreeBulder
                 DrawSeparator();
             }
 
-            internal TitledScope( string title, Action prevGUI, Action afterGUI, params GUILayoutOption[] options)
+            internal TitledScope(string title, Action prevGUI, Action afterGUI, params GUILayoutOption[] options)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox, options);
                 using (new GUILayout.HorizontalScope())
@@ -72,61 +74,49 @@ namespace OpenVRCTools.BlendTreeBulder
                 DrawSeparator();
             }
 
-            public void Dispose() => EditorGUILayout.EndVertical();
+            public void Dispose() =>
+                EditorGUILayout.EndVertical();
         }
 
         public static class Styles
         {
-            public static readonly GUIStyle faintLabel
-                = new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 11,
-                    contentOffset = new Vector2(-2.5f, 1.5f),
-                    normal = { textColor = EditorGUIUtility.isProSkin ? Color.gray : new Color(0.357f, 0.357f, 0.357f) }
-                };
-
-            public static readonly GUIStyle italicFaintLabel
-                = new GUIStyle(faintLabel)
-                {
-                    fontStyle = FontStyle.Italic,
-                };
-
-            public static readonly GUIStyle placeHolderLabel
-                = new GUIStyle(italicFaintLabel)
-                {
-                    alignment = TextAnchor.MiddleRight,
-                    contentOffset = new Vector2(-2.5f, 0),
-                };
-
-            public static readonly GUIStyle typeLabel
-                = new GUIStyle(italicFaintLabel)
-                { alignment = TextAnchor.MiddleRight};
-
+            public static readonly GUIStyle faintLabel = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11,
+                contentOffset = new Vector2(-2.5f, 1.5f),
+                normal = { textColor = EditorGUIUtility.isProSkin ? Color.gray : new Color(0.357f, 0.357f, 0.357f) }
+            };
+            public static readonly GUIStyle italicFaintLabel = new GUIStyle(faintLabel) { fontStyle = FontStyle.Italic };
+            public static readonly GUIStyle placeHolderLabel = new GUIStyle(italicFaintLabel)
+            {
+                alignment = TextAnchor.MiddleRight,
+                contentOffset = new Vector2(-2.5f, 0),
+            };
+            public static readonly GUIStyle typeLabel = new GUIStyle(italicFaintLabel) { alignment = TextAnchor.MiddleRight };
             public static readonly GUIStyle centeredLabel = new GUIStyle(EditorStyles.largeLabel)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontStyle = FontStyle.Bold,
             };
-
-            public static readonly GUIStyle titleLabel = new GUIStyle(centeredLabel) {fontSize = 18, clipping = TextClipping.Overflow};
-            public static readonly GUIStyle wrappedLabel = new GUIStyle(GUI.skin.label) {wordWrap = true};
-
-            public static readonly GUIStyle iconButton
-                = new GUIStyle()
-                {
-                    padding = new RectOffset(1, 1, 1, 1),
-                    margin = new RectOffset(),
-                    alignment = TextAnchor.MiddleCenter,
-                    contentOffset = new Vector2(0, 2)
-                };
-
+            public static readonly GUIStyle titleLabel = new GUIStyle(centeredLabel)
+            {
+                fontSize = 18,
+                clipping = TextClipping.Overflow
+            };
+            public static readonly GUIStyle wrappedLabel = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            public static readonly GUIStyle iconButton = new GUIStyle
+            {
+                padding = new RectOffset(1, 1, 1, 1),
+                margin = new RectOffset(),
+                alignment = TextAnchor.MiddleCenter,
+                contentOffset = new Vector2(0, 2)
+            };
             public static readonly GUIStyle foldoutLabel = new GUIStyle(GUI.skin.label)
             {
                 padding = new RectOffset(1, 1, 1, 1),
                 margin = new RectOffset(),
                 contentOffset = new Vector2(0, 2)
             };
-
             public static readonly GUIStyle comicallyLargeButton = new GUIStyle(GUI.skin.button)
             {
                 fontSize = 22,
@@ -157,36 +147,6 @@ namespace OpenVRCTools.BlendTreeBulder
             EditorGUI.DrawRect(r, lineColor);
         }
 
-        /*
-        public static void DrawValidatedField<T>(string msg, ref T refObject, string label) where T : Object
-        {
-            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                refObject = refObject.QuickField(label);
-                DrawSeparator();
-                DrawValidated(msg);
-            }
-        }
-        */
-
-        /*
-        public static void DrawWarningField<T>(string msg, ref T refObject, string label, Action autoFixAction, string fixButtonLabel = "Auto-Fix") where T : Object
-        {
-            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                refObject = refObject.QuickField(label);
-                DrawSeparator();
-                DrawWarning(msg);
-                if (autoFixAction != null)
-                {
-                    using (new BGColoredScope(ColorOrange))
-                        if (GUILayout.Button(fixButtonLabel))
-                            autoFixAction();
-                }
-
-            }
-        }
-        */
         public static void DrawValidatedField<T>(string msg, ref T refObject, string label) where T : Object
         {
             using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
@@ -204,6 +164,7 @@ namespace OpenVRCTools.BlendTreeBulder
                 {
                     DrawOrangeLightIcon(msg);
                     refObject = refObject.QuickField(label);
+
                     if (autoFixAction != null)
                     {
                         using (new BGColoredScope(ColorOrange))
@@ -222,6 +183,7 @@ namespace OpenVRCTools.BlendTreeBulder
                 GUILayout.Label(msg, Styles.wrappedLabel, GUILayout.Height(28));
             }
         }
+
         public static void DrawWarning(string msg)
         {
             using (new GUILayout.HorizontalScope())
@@ -231,12 +193,14 @@ namespace OpenVRCTools.BlendTreeBulder
             }
         }
 
-        private static void DrawLightIcon(bool isGreen, string tooltip)
-            => GUILayout.Label(new GUIContent(isGreen ? Content.greenLightIcon : Content.orangeLightIcon) { tooltip = tooltip }, GUILayout.Width(18), GUILayout.Height(18));
-        public static void DrawGreenLightIcon(string tooltip)
-            => DrawLightIcon(true, tooltip);
-        public static void DrawOrangeLightIcon(string tooltip)
-            => DrawLightIcon(false, tooltip);
+        private static void DrawLightIcon(bool isGreen, string tooltip) =>
+            GUILayout.Label(new GUIContent(isGreen ? Content.greenLightIcon : Content.orangeLightIcon) { tooltip = tooltip }, GUILayout.Width(18), GUILayout.Height(18));
+
+        public static void DrawGreenLightIcon(string tooltip) =>
+            DrawLightIcon(true, tooltip);
+
+        public static void DrawOrangeLightIcon(string tooltip) =>
+            DrawLightIcon(false, tooltip);
 
         internal static void DoPlaceholderLabel(Rect r, string label, float minimumWidth = 0, float extraOffset = 0, GUIStyle customStyle = null)
         {
@@ -244,11 +208,13 @@ namespace OpenVRCTools.BlendTreeBulder
             r.x -= extraOffset;
             GUI.Label(r, label, customStyle ?? Styles.placeHolderLabel);
         }
+
         internal static void DoPlaceholderLabel(string label, float minimumWidth = 0, float extraOffset = 0, GUIStyle customStyle = null) =>
             DoPlaceholderLabel(GUILayoutUtility.GetLastRect(), label, minimumWidth, extraOffset, customStyle);
 
         public static T QuickField<T>(this T target, GUIContent label) where T : Object =>
             (T)EditorGUILayout.ObjectField(label, target, typeof(T), true);
+
         public static T QuickField<T>(this T target, string label) where T : Object =>
             target.QuickField(new GUIContent(label));
 

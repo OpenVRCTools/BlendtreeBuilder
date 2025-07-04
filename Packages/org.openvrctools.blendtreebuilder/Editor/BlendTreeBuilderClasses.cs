@@ -33,13 +33,11 @@ namespace OpenVRCTools.BlendTreeBulder
         public string displayType;
         public bool isMotionTimed;
 
-        public OptimizeBranch(Branch branch)
-        {
+        public OptimizeBranch(Branch branch) =>
             baseBranch = branch;
-        }
+
         public static bool TryExtract(AnimatorController controller, int layerIndex, out OptimizeBranch optBranch)
         {
-            bool mayChangeBehaviour = false;
             optBranch = null;
             var layer = controller.layers[layerIndex];
             if (!layer.stateMachine) return false;
@@ -61,27 +59,51 @@ namespace OpenVRCTools.BlendTreeBulder
                     var state = layer.stateMachine.defaultState;
                     if (!state.motion) return false;
 
-                    bool hasAnyTransition = false;
+                    bool hasTransition = false;
                     bool success = true;
                     layer.stateMachine.Iteratetransitions(t =>
                     {
-                        hasAnyTransition = true;
+                        hasTransition = true;
                         return !(success = !t.destinationStateMachine && (!t.destinationState || t.destinationState == state));
                     });
+
                     if (!success) return false;
 
-                    if (hasAnyTransition) errorReport.AppendLine("\n- Layer contains transitions from and/or to the only state.");
+                    if (hasTransition)
+                        errorReport.AppendLine("\n- Layer contains transitions from and/or to the only state.");
+
                     if (!state.timeParameterActive)
                     {
-                        Branch baseBranch = new Branch() {name = controller.layers[layerIndex].name, childMotions = new ChildMotion[] {new ChildMotion() {motion = state.motion}}};
-                        optBranch = new OptimizeBranch(baseBranch) {linkedLayer = layer, linkedLayerIndex = layerIndex, displayType = "Single State"};
+                        Branch baseBranch = new Branch
+                        {
+                            name = controller.layers[layerIndex].name,
+                            childMotions = new ChildMotion[] { new ChildMotion { motion = state.motion } }
+                        };
+                        optBranch = new OptimizeBranch(baseBranch)
+                        {
+                            linkedLayer = layer,
+                            linkedLayerIndex = layerIndex,
+                            displayType = "Single State"
+                        };
                         return true;
                     }
 
                     if (state.motion is AnimationClip)
                     {
-                        Branch baseBranch = new Branch() {name = controller.layers[layerIndex].name, parameter = state.timeParameter, childMotions = new ChildMotion[] {new ChildMotion() {motion = state.motion}}};
-                        optBranch = new OptimizeBranch(baseBranch) {linkedLayer = layer, linkedLayerIndex = layerIndex, displayType = "Motion Time State", isMotionTimed = true, canEdit = false};
+                        Branch baseBranch = new Branch
+                        {
+                            name = controller.layers[layerIndex].name,
+                            parameter = state.timeParameter,
+                            childMotions = new ChildMotion[] { new ChildMotion { motion = state.motion } }
+                        };
+                        optBranch = new OptimizeBranch(baseBranch)
+                        {
+                            linkedLayer = layer,
+                            linkedLayerIndex = layerIndex,
+                            displayType = "Motion Time State",
+                            isMotionTimed = true,
+                            canEdit = false
+                        };
                         return true;
                     }
 
@@ -108,7 +130,8 @@ namespace OpenVRCTools.BlendTreeBulder
 
                         for (int i = 1; i < t.conditions.Length; i++)
                         {
-                            if (!Regex.Match(t.conditions[i].parameter, @"^(?i)isloaded").Success && !Regex.Match(t.conditions[i].parameter, @"^(?i)hasloaded").Success)
+                            if (!Regex.Match(t.conditions[i].parameter, @"^(?i)isloaded").Success &&
+                                !Regex.Match(t.conditions[i].parameter, @"^(?i)hasloaded").Success)
                                 return Failure();
                         }
 
@@ -119,23 +142,20 @@ namespace OpenVRCTools.BlendTreeBulder
                             if (!string.IsNullOrEmpty(parameter) && parameter != c.parameter) return Failure();
                             parameter = c.parameter;
 
-
                             float standardizedThreshold = c.threshold;
                             var dState = t.destinationState;
 
                             switch (c.mode)
                             {
                                 case AnimatorConditionMode.NotEqual: return Failure();
-                                case AnimatorConditionMode.IfNot:
-                                    standardizedThreshold = 0;
-                                    break;
-                                case AnimatorConditionMode.If:
-                                    standardizedThreshold = 1;
-                                    break;
+                                case AnimatorConditionMode.IfNot: { standardizedThreshold = 0; break; }
+                                case AnimatorConditionMode.If: { standardizedThreshold = 1; break; }
                                 case AnimatorConditionMode.Less:
                                 case AnimatorConditionMode.Greater:
+                                {
                                     warnReport.AppendLine("\n- Parameter conditions are not exact. Less & Greater conditions are not handled accurately yet.");
                                     break;
+                                }
                             }
 
                             if (endStates.TryGetValue(standardizedThreshold, out AnimatorState endState))
@@ -147,6 +167,7 @@ namespace OpenVRCTools.BlendTreeBulder
                             {
                                 if (visitedStates.Contains(dState)) return Failure();
                                 endStates.Add(standardizedThreshold, dState);
+
                                 if (!foundLoopingZeroSpeed && dState.speed == 0 && dState.motion && dState.motion.isLooping)
                                 {
                                     foundLoopingZeroSpeed = true;
@@ -154,16 +175,11 @@ namespace OpenVRCTools.BlendTreeBulder
                                 }
                             }
 
-
-
-
-
                             if (!foundBehaviours && t.destinationState.behaviours != null && t.destinationState.behaviours.Length > 0)
                             {
                                 foundBehaviours = true;
                                 errorReport.AppendLine("\n- Layer contains statemachine behaviours, which may be necessary for certain functionality, such as Exclusive Toggles.");
                             }
-
                         }
 
                         if (!foundNonInstantTransitions && t is AnimatorStateTransition t3 && ((t3.hasExitTime && t3.exitTime > 0) || t3.duration > 0 || t3.offset > 0))
@@ -172,7 +188,6 @@ namespace OpenVRCTools.BlendTreeBulder
                             infoReport.AppendLine("\n- Transitions are not instant. Behaviour may change when optimized.");
                         }
 
-
                         if (!success && !string.IsNullOrEmpty(parameter) && endStates.Count >= 2) success = true;
 
                         return false;
@@ -180,11 +195,13 @@ namespace OpenVRCTools.BlendTreeBulder
                     if (!success) return false;
 
                     AnimatorControllerParameter animParameter = controller.parameters.FirstOrDefault(p => p.name == parameter);
+
                     if (animParameter != null)
                     {
                         if (animParameter.type != AnimatorControllerParameterType.Float)
                         {
                             bool wasReused = false;
+
                             foreach (var layer2 in controller.layers)
                             {
                                 if (layer2.stateMachine == layer.stateMachine) continue;
@@ -193,6 +210,7 @@ namespace OpenVRCTools.BlendTreeBulder
                                 layer2.stateMachine.Iteratetransitions(t => parameterReused = t.conditions.Any(c => c.parameter == parameter));
 
                                 if (!parameterReused) continue;
+
                                 if (!wasReused)
                                 {
                                     wasReused = true;
@@ -208,9 +226,9 @@ namespace OpenVRCTools.BlendTreeBulder
                     if (endStates.Values.Any(s => s.motion && s.motion.isLooping && !IsConstant(s.motion)))
                         warnReport.AppendLine("\n- Animation Clips used are not constant! Blendtrees usually will be playing the end of the clips");
 
-
                     var newChildren = new ChildMotion[endStates.Count];
                     int currentIndex = 0;
+
                     foreach (var (threshold, state) in endStates)
                     {
                         newChildren[currentIndex++] = new ChildMotion
@@ -221,8 +239,6 @@ namespace OpenVRCTools.BlendTreeBulder
                         };
                     }
 
-
-
                     var baseBranch = new Branch()
                     {
                         name = name,
@@ -231,23 +247,31 @@ namespace OpenVRCTools.BlendTreeBulder
                     };
 
                     string infoLog = infoReport.ToString();
-                    if (!string.IsNullOrEmpty(infoLog)) infoLog = ("Behaviour may be different due to the following reasons:\n" + infoLog).Trim();
-
+                    if (!string.IsNullOrEmpty(infoLog))
+                        infoLog = ("Behaviour may be different due to the following reasons:\n" + infoLog).Trim();
 
                     string warnLog = warnReport.ToString();
-                    if (!string.IsNullOrEmpty(warnLog)) warnLog = ("Behaviour is likely to be different due to the following reasons:\n" + warnLog).Trim();
+                    if (!string.IsNullOrEmpty(warnLog))
+                        warnLog = ("Behaviour is likely to be different due to the following reasons:\n" + warnLog).Trim();
 
                     string errorLog = errorReport.ToString();
-                    if (!string.IsNullOrEmpty(errorLog)) errorLog = ("Some stuff may break for these reasons:\n" + errorLog).Trim();
+                    if (!string.IsNullOrEmpty(errorLog))
+                        errorLog = ("Some stuff may break for these reasons:\n" + errorLog).Trim();
 
                     var active = string.IsNullOrEmpty(errorLog) && string.IsNullOrEmpty(warnLog);
-                    optBranch = new OptimizeBranch(baseBranch) {linkedLayer = layer, linkedLayerIndex = layerIndex, displayType = endStates.Count == 2 ? "Toggle" : "Exclusive Toggle", isActive = active,infoLog = infoLog, warnLog = warnLog, errorLog = errorLog};
-
+                    optBranch = new OptimizeBranch(baseBranch)
+                    {
+                        linkedLayer = layer,
+                        linkedLayerIndex = layerIndex,
+                        displayType = endStates.Count == 2 ? "Toggle" : "Exclusive Toggle",
+                        isActive = active,
+                        infoLog = infoLog,
+                        warnLog = warnLog,
+                        errorLog = errorLog
+                    };
                     return true;
-
                 }
             }
-
         }
 
         public static implicit operator Branch(OptimizeBranch b) => b.baseBranch;
@@ -261,9 +285,10 @@ namespace OpenVRCTools.BlendTreeBulder
         public int Count => optBranches.Count;
 
 
-        public void Add(OptimizeBranch branch)
-            => optBranches.Add(branch);
+        public void Add(OptimizeBranch branch) =>
+            optBranches.Add(branch);
 
-        public OptimizeBranch this[int i] => optBranches[i];
+        public OptimizeBranch this[int i] =>
+            optBranches[i];
     }
 }
